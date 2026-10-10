@@ -43,7 +43,7 @@ CacheSystem/
 
 项目无外部依赖，一条命令即可编译。
 
-### Linux / macOS
+### Linux
 
 ```bash
 # 方式一：g++ 直接编译
@@ -56,18 +56,6 @@ cmake .. && make
 ./main
 ```
 
-### Windows（MinGW）
-
-```bash
-# 方式一：g++ 直接编译
-g++ -std=c++17 -O2 -I. testAllCachePolicy.cpp -o main.exe
-main.exe
-
-# 方式二：CMake + Ninja
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-build\main.exe
-```
 
 ## 测试场景
 
