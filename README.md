@@ -1,110 +1,101 @@
 # CacheSystem
 
-> **本项目目前只在[知识星球](https://programmercarl.com/other/kstar.html)答疑并维护**。
+一个纯 C++17 标准库实现的**线程安全缓存系统**，实现了 LRU、LFU、ARC、LRU-K、LFU-Aging 五种缓存淘汰策略，核心代码约 1100 行，无任何外部依赖。
 
-最近很多录友在问：有没有比较小，但又比较完整的项目。
+> 本项目基于 [youngyangyang04/KamaCache](https://github.com/youngyangyang04/KamaCache) 修改而来，感谢原作者 [代码随想录](https://programmercarl.com/) 的开源分享。
 
-最近[知识星球](https://programmercarl.com/other/kstar.html)里里刚刚发布了 C++版本缓存系统，这个小项目。
+## 特性
 
-代码量不大，只有1100行。
+- **五种淘汰策略**：LRU、LFU、ARC、LRU-K、LFU-Aging，覆盖不同业务场景
+- **线程安全**：互斥锁 + 原子操作，保证多线程下数据一致性
+- **缓存分片（Sharding）**：按 key 哈希分片，降低锁竞争，提升并发性能
+- **LFU 老化机制**：防止历史高频数据长期占用缓存
+- **零外部依赖**：纯 C++17 标准库，无需 Boost 等第三方库
+- **跨平台**：Windows / Linux / macOS 均可编译运行
 
-一般的话，每天花 6-8个小时，7天就可以学完。
+## 缓存策略
 
-做这个项目的基础要求：
+| 策略 | 淘汰思路 | 适用场景 |
+|------|---------|---------|
+| LRU | 淘汰最久未访问的数据 | 一般热点访问 |
+| LFU | 淘汰访问频率最低的数据 | 长期稳定热点 |
+| ARC | LRU 与 LFU 自适应平衡 | 访问模式多变 |
+| LRU-K | 访问满 K 次才进入缓存 | 区分热点与冷数据 |
+| LFU-Aging | LFU + 频率衰减 | 防止历史高频项霸占缓存 |
 
-熟悉C++语法，学会C++11常用特性即可，了解操作系统相关知识，有网络编程经验更佳。
+## 项目结构
 
-这个项目对于时间紧张的录友比较合适。
+```
+CacheSystem/
+├── Pudd1ngCachePolicy.h   # 抽象接口：put / get
+├── LruCache.h             # LRU、LRU-K、LRU 分片
+├── LfuCache.h             # LFU、LFU-Aging、LFU 分片
+├── ArcCache/              # ARC 自适应缓存
+│   ├── ArcCache.h         # ARC 顶层调度
+│   ├── ArcCacheNode.h     # 节点定义
+│   ├── ArcLruPart.h       # LRU 半边（主链表 + 幽灵链表）
+│   └── ArcLfuPart.h       # LFU 半边（频次分桶 + 幽灵链表）
+├── testAllCachePolicy.cpp # 测试程序
+└── CMakeLists.txt
+```
 
-**该项目满足一下特点**：
+## 构建与运行
 
-* 代码量不大
-* 整体不难
-* 又有项目难点可说的
-* 可以较快学完
+项目无外部依赖，一条命令即可编译。
 
-该缓存系统使用多个页面替换策略实现了**一个线程安全的缓存系统**：
+### Linux / macOS
 
-* LRU：最近最久未使用页面置换算法
-* LFU：最不经常使用页面置换算法
-* ARC：自适应替换缓存算法
+```bash
+# 方式一：g++ 直接编译
+g++ -std=c++17 -O2 -I. testAllCachePolicy.cpp -o main
+./main
 
-## 做完本项目，你的收获
+# 方式二：CMake
+mkdir build && cd build
+cmake .. && make
+./main
+```
 
+### Windows（MinGW）
 
-* 掌握缓存的作用、层次结构与设计哲学，理解其在系统架构中的关键价值
-* 亲手实现并优化LRU、LFU、ARC算法，应对不同业务场景
-* 运用互斥锁、原子操作及缓存分片技术，保证多线程数据一致性与高性能
-* 通过分片降低锁竞争、预加载预热缓存，显著提升吞吐量与响应速度
-* 实践应对缓存穿透、击穿、雪崩的行业通用解决方案
-* 从数据结构设计、策略选择到性能评估，获得构建高性能中间件的完整经验
+```bash
+# 方式一：g++ 直接编译
+g++ -std=c++17 -O2 -I. testAllCachePolicy.cpp -o main.exe
+main.exe
 
-## 什么是缓存？
+# 方式二：CMake + Ninja
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+build\main.exe
+```
 
-缓存是将高频访问的数据暂存到内存中，是加速数据访问的存储，降低延迟，提高吞吐率的利器。
+## 测试场景
 
-## 为什么要实现缓存系统?
+测试程序模拟三种典型访问模式，对比五种策略的命中率：
 
-因缓存的使用相关需求，**通过牺牲一部分服务器内存，减少对磁盘或者数据库资源进行直接读写，可换取更快响应速度**。
+1. **热点数据访问**：70% 热点 + 30% 冷数据
+2. **循环扫描**：顺序扫描 + 随机跳跃
+3. **工作负载剧烈变化**：五个阶段，访问模式不断切换
 
-尤其是处理高并发的场景，负责存储经常访问的数据，通过设计合理的缓存机制提高资源的访问效率。
+## 什么是缓存
 
-由于服务器的内存是有限的，我们不能把所有数据都存放在内存中，因此需要一种机制来决定当使用内存超过一定标准时，应该删除哪些数据，这就涉及到缓存淘汰策略的选择。
+缓存是将高频访问的数据暂存到内存中，加速数据访问、降低延迟、提高吞吐率的关键手段。
 
-## 实际应用场景
+服务器内存有限，无法把所有数据都放在内存中，因此需要一种机制，决定内存不够用时该淘汰哪些数据——这就是缓存淘汰策略。不同的策略适合不同的访问模式：
 
-缓存策略在系统和实际业务开发过程中较为常见，下面我为大家列出一些使用了缓存策略的知名系统和组件：
+- 访问模式稳定 → LFU 更优
+- 访问模式多变 → LRU / ARC 更优
+- 扫描型负载 → ARC 显著优于 LRU
 
-**Linux Kernel**： 使用 LRU 在内存管理中页面缓存(Page Cache)，当物理内存不足时，系统会优先淘汰最近未使用的页面。
+## 实际应用
 
-**Android内存缓存**：  Android的LRUCache类用于管理有限内存中的应用数据缓存。
+缓存淘汰策略在各类系统中广泛应用：
 
-**Redis**：Redis 本身并不直接实现 LRU 缓存策略，但它提供了过期和淘汰机制。
+- **Linux Kernel**：页缓存（Page Cache）用 LRU 淘汰物理内存不足时最近未使用的页面
+- **Redis**：提供 volatile-lru、LFU 等多种淘汰策略（maxmemory-policy 配置）
+- **PostgreSQL / ZFS**：使用 ARC 自适应缓存
+- **Android / 浏览器**：LruCache 等内存缓存
 
-在内存不足时，Redis 可以配置不同的淘汰策略，如 volatile-lru（对于设置了过期时间的键，使用 LRU 策略淘汰数据）。
+## 许可证
 
-Redis 提供了 LFU 策略（从 4.0 版本开始）作为其内存驱逐策略之一，可以通过 maxmemory-policy 配置。
-
-**PostgreSQL** ：在一些PostgreSQL的缓存拓展中实现了基于ARC的缓存机制
-
-## 缓存系统项目精讲
-
-该项目文档是[知识星球](https://programmercarl.com/other/kstar.html)录友专享的。
-
-项目文档依然是将 「简历写法」给大家列出来了，大家学完就可以参考这个来写简历，分别给出普通写法和进阶写法：
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227165531.png' width=500 alt=''></img></div>
-
-做完该项目，面试中大概率会有哪些面试问题，以及如何回答，也列出好了，共27道。
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227165754.png' width=500 alt=''></img></div>
-
-文档中的项目面试题都掌握的话，这个项目在面试中基本没问题。
-
-当然项目文档会对本项目代码做详细的讲解：
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227170954.png' width=500 alt=''></img></div>
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227171014.png' width=500 alt=''></img></div>
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227171042.png' width=500 alt=''></img></div>
-
-同时会对三个缓存策略做优劣对对比：
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227171143.png' width=500 alt=''></img></div>
-
-同时对缓存命中率做实验效果对比：
-
-<div align="center"><img src='https://file1.kamacoder.com/i/algo/20241227171342.png' width=500 alt=''></img></div>
-
-## 答疑
-
-本项目在[知识星球](https://programmercarl.com/other/kstar.html)里为 文字专栏形式，大家不用担心，看不懂，星球里每个项目有专属答疑群，任何问题都可以在群里问，都会得到解答：
-
-![](https://file1.kamacoder.com/i/web/2025-09-26_11-30-13.jpg)
-
-
-## 获取本项目专栏
-
-**本文档仅为星球内部专享，大家可以加入[知识星球](https://programmercarl.com/other/kstar.html)里获取，在星球置顶一**
-
+[GPL v3](LICENSE)。基于 [youngyangyang04/KamaCache](https://github.com/youngyangyang04/KamaCache) 修改，保留原作者版权声明。
