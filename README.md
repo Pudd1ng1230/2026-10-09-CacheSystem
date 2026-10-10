@@ -2,7 +2,7 @@
 
 一个纯 C++17 标准库实现的**线程安全缓存系统**，实现了 LRU、LFU、ARC、LRU-K、LFU-Aging 五种缓存淘汰策略，核心代码约 1100 行，无任何外部依赖。
 
-> 本项目基于 [youngyangyang04/KamaCache](https://github.com/youngyangyang04/KamaCache) 修改而来，感谢原作者 [代码随想录](https://programmercarl.com/) 的开源分享。
+> 本项目基于 [youngyangyang04/KamaCache](https://github.com/youngyangyang04/KamaCache) 修改。
 
 ## 特性
 
