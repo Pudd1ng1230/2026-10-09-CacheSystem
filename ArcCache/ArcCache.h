@@ -1,25 +1,25 @@
 #pragma once
 
-#include "../KICachePolicy.h"
-#include "KArcLruPart.h"
-#include "KArcLfuPart.h"
+#include "../Pudd1ngCachePolicy.h"
+#include "ArcLruPart.h"
+#include "ArcLfuPart.h"
 #include <memory>
 
-namespace KamaCache 
+namespace CacheSystem 
 {
 
 template<typename Key, typename Value>
-class KArcCache : public KICachePolicy<Key, Value> 
+class ArcCache : public Pudd1ngCachePolicy<Key, Value> 
 {
 public:
-    explicit KArcCache(size_t capacity = 10, size_t transformThreshold = 2)
+    explicit ArcCache(size_t capacity = 10, size_t transformThreshold = 2)
         : capacity_(capacity)
         , transformThreshold_(transformThreshold)
         , lruPart_(std::make_unique<ArcLruPart<Key, Value>>(capacity, transformThreshold))
         , lfuPart_(std::make_unique<ArcLfuPart<Key, Value>>(capacity, transformThreshold))
     {}
 
-    ~KArcCache() override = default;
+    ~ArcCache() override = default;
 
     void put(Key key, Value value) override 
     {
@@ -89,4 +89,4 @@ private:
     std::unique_ptr<ArcLfuPart<Key, Value>> lfuPart_;
 };
 
-} // namespace KamaCache
+} // namespace CacheSystem

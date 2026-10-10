@@ -1,0 +1,7 @@
+# 编译产物
+build/
+main.exe
+
+# 个人文件（不提交到仓库）
+CLAUDE.md
+部署与学习指南.md

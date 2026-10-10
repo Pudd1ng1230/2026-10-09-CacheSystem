@@ -1,13 +1,13 @@
 #pragma once
 
-namespace KamaCache
+namespace CacheSystem
 {
 
 template <typename Key, typename Value>
-class KICachePolicy
+class Pudd1ngCachePolicy
 {
 public:
-    virtual ~KICachePolicy() {};
+    virtual ~Pudd1ngCachePolicy() {};
 
     // 添加缓存接口
     virtual void put(Key key, Value value) = 0;
@@ -19,4 +19,4 @@ public:
 
 };
 
-} // namespace KamaCache
+} // namespace CacheSystem

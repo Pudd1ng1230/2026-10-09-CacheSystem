@@ -7,12 +7,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "KICachePolicy.h"
+#include "Pudd1ngCachePolicy.h"
 
-namespace KamaCache
+namespace CacheSystem
 {
 
-template<typename Key, typename Value> class KLfuCache;
+template<typename Key, typename Value> class LfuCache;
 
 template<typename Key, typename Value>
 class FreqList
@@ -79,23 +79,23 @@ public:
 
     NodePtr getFirstNode() const { return head_->next; }
     
-    friend class KLfuCache<Key, Value>;
+    friend class LfuCache<Key, Value>;
 };
 
 template <typename Key, typename Value>
-class KLfuCache : public KICachePolicy<Key, Value>
+class LfuCache : public Pudd1ngCachePolicy<Key, Value>
 {
 public:
     using Node = typename FreqList<Key, Value>::Node;
     using NodePtr = std::shared_ptr<Node>;
     using NodeMap = std::unordered_map<Key, NodePtr>;
 
-    KLfuCache(int capacity, int maxAverageNum = 1000000)
+    LfuCache(int capacity, int maxAverageNum = 1000000)
     : capacity_(capacity), minFreq_(INT8_MAX), maxAverageNum_(maxAverageNum),
       curAverageNum_(0), curTotalNum_(0) 
     {}
 
-    ~KLfuCache() override = default;
+    ~LfuCache() override = default;
 
     void put(Key key, Value value) override
     {
@@ -170,7 +170,7 @@ private:
 };
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::getInternal(NodePtr node, Value& value)
+void LfuCache<Key, Value>::getInternal(NodePtr node, Value& value)
 {
     // 找到之后需要将其从低访问频次的链表中删除，并且添加到+1的访问频次链表中，
     // 访问频次+1, 然后把value值返回
@@ -189,7 +189,7 @@ void KLfuCache<Key, Value>::getInternal(NodePtr node, Value& value)
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::putInternal(Key key, Value value)
+void LfuCache<Key, Value>::putInternal(Key key, Value value)
 {   
     // 如果不在缓存中，则需要判断缓存是否已满
     if (nodeMap_.size() == capacity_)
@@ -207,7 +207,7 @@ void KLfuCache<Key, Value>::putInternal(Key key, Value value)
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::kickOut()
+void LfuCache<Key, Value>::kickOut()
 {
     NodePtr node = freqToFreqList_[minFreq_]->getFirstNode();
     removeFromFreqList(node);
@@ -216,7 +216,7 @@ void KLfuCache<Key, Value>::kickOut()
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::removeFromFreqList(NodePtr node)
+void LfuCache<Key, Value>::removeFromFreqList(NodePtr node)
 {
     // 检查结点是否为空
     if (!node) 
@@ -227,7 +227,7 @@ void KLfuCache<Key, Value>::removeFromFreqList(NodePtr node)
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::addToFreqList(NodePtr node)
+void LfuCache<Key, Value>::addToFreqList(NodePtr node)
 {
     // 检查结点是否为空
     if (!node) 
@@ -245,7 +245,7 @@ void KLfuCache<Key, Value>::addToFreqList(NodePtr node)
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::addFreqNum()
+void LfuCache<Key, Value>::addFreqNum()
 {
     curTotalNum_++;
     if (nodeMap_.empty())
@@ -260,7 +260,7 @@ void KLfuCache<Key, Value>::addFreqNum()
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::decreaseFreqNum(int num)
+void LfuCache<Key, Value>::decreaseFreqNum(int num)
 {
     // 减少平均访问频次和总访问频次
     curTotalNum_ -= num;
@@ -271,7 +271,7 @@ void KLfuCache<Key, Value>::decreaseFreqNum(int num)
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::handleOverMaxAverageNum()
+void LfuCache<Key, Value>::handleOverMaxAverageNum()
 {
     if (nodeMap_.empty())
         return;
@@ -309,7 +309,7 @@ void KLfuCache<Key, Value>::handleOverMaxAverageNum()
 }
 
 template<typename Key, typename Value>
-void KLfuCache<Key, Value>::updateMinFreq() 
+void LfuCache<Key, Value>::updateMinFreq() 
 {
     minFreq_ = INT8_MAX;
     for (const auto& pair : freqToFreqList_) 
@@ -325,17 +325,17 @@ void KLfuCache<Key, Value>::updateMinFreq()
 
 // 并没有牺牲空间换时间，他是把原有缓存大小进行了分片。
 template<typename Key, typename Value>
-class KHashLfuCache
+class HashLfuCache
 {
 public:
-    KHashLfuCache(size_t capacity, int sliceNum, int maxAverageNum = 10)
+    HashLfuCache(size_t capacity, int sliceNum, int maxAverageNum = 10)
         : sliceNum_(sliceNum > 0 ? sliceNum : std::thread::hardware_concurrency())
         , capacity_(capacity)
     {
         size_t sliceSize = std::ceil(capacity_ / static_cast<double>(sliceNum_)); // 每个lfu分片的容量
         for (int i = 0; i < sliceNum_; ++i)
         {
-            lfuSliceCaches_.emplace_back(new KLfuCache<Key, Value>(sliceSize, maxAverageNum));
+            lfuSliceCaches_.emplace_back(new LfuCache<Key, Value>(sliceSize, maxAverageNum));
         }
     }
 
@@ -380,8 +380,8 @@ private:
 private:
     size_t capacity_; // 缓存总容量
     int sliceNum_; // 缓存分片数量
-    std::vector<std::unique_ptr<KLfuCache<Key, Value>>> lfuSliceCaches_; // 缓存lfu分片容器
+    std::vector<std::unique_ptr<LfuCache<Key, Value>>> lfuSliceCaches_; // 缓存lfu分片容器
 };
 
-} // namespace KamaCache
+} // namespace CacheSystem
 

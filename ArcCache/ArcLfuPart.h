@@ -1,11 +1,11 @@
 #pragma once
 
-#include "KArcCacheNode.h"
+#include "ArcCacheNode.h"
 #include <unordered_map>
 #include <map>
 #include <mutex>
 
-namespace KamaCache 
+namespace CacheSystem 
 {
 
 template<typename Key, typename Value>
@@ -228,4 +228,4 @@ private:
     NodePtr ghostTail_;
 };
 
-} // namespace KamaCache
+} // namespace CacheSystem
